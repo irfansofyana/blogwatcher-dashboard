@@ -155,7 +155,7 @@ function BlogwatcherPage({ ctx }) {
 }
 
 export default {
-  id: 'blogwatcher-dashboard', name: 'Blogwatcher', defaultEnabled: false,
+  id: 'hermes-blogwatcher', name: 'Blogwatcher', defaultEnabled: false,
   register(ctx) {
     ctx.register({ id: 'page', area: ROUTES_AREA, data: { path: '/blogwatcher' }, render: () => h(BlogwatcherPage, { ctx }) });
     ctx.register({ id: 'nav', area: SIDEBAR_NAV_AREA, data: { path: '/blogwatcher', label: 'Blogwatcher', codicon: 'rss' } });

@@ -27,12 +27,20 @@ For Desktop on the same machine: **Capabilities → Plugins → Rescan**, then e
 For Desktop on a **different machine**, copy `desktop/plugin.js` to:
 
 ```text
-~/.hermes/desktop-plugins/blogwatcher-dashboard/plugin.js
+~/.hermes/desktop-plugins/hermes-blogwatcher/plugin.js
 ```
 
 Rescan and enable the local Desktop plugin. It calls the connected remote backend; the client needs neither Python nor Blogwatcher. Update both copies together.
 
 Optional backend launch variables: `BLOGWATCHER_BIN` (absolute executable path) and `BLOGWATCHER_DB` (the CLI's database override). The `blogwatcher-cli` fork is not supported. AI requires the backend plugin's registered Hermes LLM context; no separate API key is needed in the UI.
+
+## Upgrading from the old plugin ID
+
+The plugin ID is now `hermes-blogwatcher`. This is not an in-place update of `blogwatcher-dashboard`.
+
+On the backend, remove only the old plugin package (`hermes plugins remove blogwatcher-dashboard`), then install this repository with `--enable` and restart the dashboard/API server. On Mac, remove the old `~/.hermes/desktop-plugins/blogwatcher-dashboard/` folder and copy the new UI to `~/.hermes/desktop-plugins/hermes-blogwatcher/plugin.js`, then reload Desktop plugins and enable it. Do not keep both IDs enabled.
+
+Subscriptions/read state remain in the original CLI database. Successful summaries continue using the same `cache/blogwatcher-summaries` directory under the active Hermes home; do not delete that cache. The `/blogwatcher` page and agent-tool names are unchanged; the API namespace is `/api/plugins/hermes-blogwatcher`.
 
 ## Development
 

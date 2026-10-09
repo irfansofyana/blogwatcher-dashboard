@@ -1,4 +1,4 @@
-name: blogwatcher-dashboard
+name: hermes-blogwatcher
 version: "0.2.0"
 description: CLI-backed Blogwatcher inbox and source controls for Hermes Desktop and web
 provides_tools:

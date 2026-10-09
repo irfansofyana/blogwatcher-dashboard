@@ -5,7 +5,7 @@
   const React = SDK.React;
   const { useState, useEffect, useRef } = SDK.hooks;
   const h = React.createElement;
-  const BASE = '/api/plugins/blogwatcher-dashboard';
+  const BASE = '/api/plugins/hermes-blogwatcher';
 
   function api(route, body) {
     return SDK.fetchJSON(BASE + route, body === undefined ? undefined : {
@@ -162,5 +162,5 @@
       notice && h('p', { role: 'status', className: 'text-sm text-muted-foreground' }, notice),
       view === 'sources' ? sourceView : articleView);
   }
-  window.__HERMES_PLUGINS__.register('blogwatcher-dashboard', BlogwatcherPage);
+  window.__HERMES_PLUGINS__.register('hermes-blogwatcher', BlogwatcherPage);
 })();

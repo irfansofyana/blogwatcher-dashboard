@@ -95,7 +95,7 @@ class HostBridgeTests(unittest.TestCase):
         live = os.environ.get("HERMES_BRIDGE_LIVE") == "1"
         with tempfile.TemporaryDirectory(prefix="bridge-", dir=os.environ.get("TMPDIR")) as tmp:
             home = Path(tmp)
-            plugin = home / "plugins" / "blogwatcher-dashboard"
+            plugin = home / "plugins" / "hermes-blogwatcher"
             plugin.mkdir(parents=True)
             for name in ("__init__.py", "blogwatcher_core.py", "plugin.yaml", "summary_bridge.py"):
                 if (ROOT / name).exists():
@@ -111,7 +111,7 @@ router = APIRouter()
 def probe():
     return {"pid": os.getpid(), "bridge_module": bridge.__name__, "result": bridge.summarize_text("The observatory opened on Monday. It studies stars.", "https://example.org/probe")}
 ''')
-            config = {"plugins": {"enabled": ["blogwatcher-dashboard"], "isolation": "host"}}
+            config = {"plugins": {"enabled": ["hermes-blogwatcher"], "isolation": "host"}}
             if live:
                 from hermes_cli.config import load_config
                 active = load_config().get("model", {})
@@ -131,26 +131,26 @@ def probe():
                 try:
                     if live:
                         from hermes_cli.plugins import PluginContext
-                        manifest = PluginManifest(name="blogwatcher-dashboard", version="0.1.0", path=str(plugin), source="user")
+                        manifest = PluginManifest(name="hermes-blogwatcher", version="0.1.0", path=str(plugin), source="user")
                         host = manager._plugin_host()
                         host.load(manifest, PluginContext(manifest, manager), module_name=manager._directory_module_name(manifest), entrypoint=False)
                     else:
                         manager.discover_and_load()
-                        loaded = manager._plugins["blogwatcher-dashboard"]
+                        loaded = manager._plugins["hermes-blogwatcher"]
                         self.assertIsNone(loaded.error)
                         host = manager._plugin_host()
-                    response = host.asgi_request("blogwatcher-dashboard", str(dashboard), "probe.py", "POST", "/probe", "", [], b"")
+                    response = host.asgi_request("hermes-blogwatcher", str(dashboard), "probe.py", "POST", "/probe", "", [], b"")
                     self.assertEqual(response["status"], 200)
                     payload = json.loads(response["body"])
                     self.assertNotEqual(payload["pid"], os.getpid())
                     self.assertEqual(payload["pid"], host.pid)
-                    self.assertTrue(payload["bridge_module"].startswith("hermes_plugins.blogwatcher_dashboard"))
+                    self.assertTrue(payload["bridge_module"].startswith("hermes_plugins.hermes_blogwatcher"))
                     self.assertTrue(payload["bridge_module"].endswith(".summary_bridge"))
                     self.assertTrue(payload["result"]["text"].strip())
                     self.assertTrue(payload["result"]["provider"])
                     if not live:
                         self.assertEqual(len(fixture_calls), 1)
-                        self.assertEqual(fixture_calls[0][0], "blogwatcher-dashboard")
+                        self.assertEqual(fixture_calls[0][0], "hermes-blogwatcher")
                         self.assertEqual(fixture_calls[0][2], os.getpid())
                     else:
                         print("LIVE_BRIDGE_RESULT " + json.dumps(payload))

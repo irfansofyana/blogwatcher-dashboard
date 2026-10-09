@@ -38,7 +38,7 @@ async function harness(desktop) {
     await module.evaluate();
     module.namespace.default.register({ rest: request, os: { openExternal() {} }, register: c => { if (c.area === 'routes') { const el = c.render(); component = el.type; props = el.props; } } });
   } else {
-    window.__HERMES_PLUGIN_SDK__ = { React: hooks, hooks, fetchJSON: (url, opts) => request(url.replace('/api/plugins/blogwatcher-dashboard', ''), opts) };
+    window.__HERMES_PLUGIN_SDK__ = { React: hooks, hooks, fetchJSON: (url, opts) => request(url.replace('/api/plugins/hermes-blogwatcher', ''), opts) };
     window.__HERMES_PLUGINS__ = { register: (id, fn) => { component = fn; } };
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../dashboard/dist/index.js'), 'utf8'), context);
   }

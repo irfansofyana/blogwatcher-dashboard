@@ -25,8 +25,8 @@ test('web plugin registers a native tab and its initial inbox shell', () => {
   }};
   const source = fs.readFileSync(path.join(__dirname, '../dashboard/dist/index.js'), 'utf8');
   vm.runInNewContext(source, context);
-  assert.equal(typeof registered['blogwatcher-dashboard'], 'function');
-  const text = flatten(registered['blogwatcher-dashboard']());
+  assert.equal(typeof registered['hermes-blogwatcher'], 'function');
+  const text = flatten(registered['hermes-blogwatcher']());
   assert.match(text, /Unread/);
   assert.match(text, /Sources/);
   assert.match(text, /Scan now/);
@@ -44,7 +44,7 @@ test('source form keeps the draft until add succeeds', () => {
     }, __HERMES_PLUGINS__: { register: (id, view) => registered[id] = view },
   }};
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../dashboard/dist/index.js'), 'utf8'), context);
-  const tree = registered['blogwatcher-dashboard']();
+  const tree = registered['hermes-blogwatcher']();
   function find(node, type) {
     if (node == null) return null;
     if (Array.isArray(node)) return node.map(x => find(x, type)).find(Boolean);
@@ -78,7 +78,7 @@ test('title opens details without inference or read mutations', () => {
   assert.ok(title, 'article title must open a detail panel');
   title.props.onClick();
   assert.equal(calls.length, 1);
-  assert.equal(calls[0][0], '/api/plugins/blogwatcher-dashboard/articles/1/summary');
+  assert.equal(calls[0][0], '/api/plugins/hermes-blogwatcher/articles/1/summary');
   assert.ok(changes.length > 0);
 });
 

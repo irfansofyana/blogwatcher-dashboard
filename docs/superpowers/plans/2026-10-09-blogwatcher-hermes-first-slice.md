@@ -41,7 +41,7 @@
 ### Task 2: Backend HTTP and agent tools
 
 **Files:** `dashboard/plugin_api.py`, `dashboard/manifest.json`, `plugin.yaml`, `__init__.py`, `tests/test_plugin.py`.
-**Interfaces:** FastAPI router mounted at `/api/plugins/blogwatcher-dashboard/`; JSON responses `GET /articles`, `GET /blogs`, POST `/blogs`, `/blogs/remove`, `/scan`, `/articles/read`, `/articles/unread`, `/articles/read-all`. Agent tool handlers expose only bounded, read-only article/source listing.
+**Interfaces:** FastAPI router mounted at `/api/plugins/hermes-blogwatcher/`; JSON responses `GET /articles`, `GET /blogs`, POST `/blogs`, `/blogs/remove`, `/scan`, `/articles/read`, `/articles/unread`, `/articles/read-all`. Agent tool handlers expose only bounded, read-only article/source listing.
 
 - [ ] Write tests for request validation and handler delegation against the isolated fake CLI; a bad article id must yield a client error without CLI invocation.
 - [ ] Run `python -m unittest tests.test_plugin -v` and verify failure due to missing route/handler.

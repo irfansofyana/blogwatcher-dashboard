@@ -20,15 +20,15 @@ def main():
     article = next(a for a in items if a['blog'] == 'Simon Willison')
     home = str(get_hermes_home())
     with tempfile.TemporaryDirectory(dir=os.environ.get('TMPDIR'), prefix='blogwatcher-live-') as tmp:
-        package = Path(tmp) / 'blogwatcher-dashboard'
+        package = Path(tmp) / 'hermes-blogwatcher'
         shutil.copytree(root, package, ignore=shutil.ignore_patterns('.git', '__pycache__', '.superpowers'))
         manager = PluginManager(scope_key=home)
         host = manager._plugin_host()
-        manifest = PluginManifest(name='blogwatcher-dashboard', version='0.2.0', path=str(package), source='user')
+        manifest = PluginManifest(name='hermes-blogwatcher', version='0.2.0', path=str(package), source='user')
         try:
             host.load(manifest, PluginContext(manifest, manager), module_name=manager._directory_module_name(manifest), entrypoint=False)
             payload = json.dumps({'article_id': article['id'], 'consent': True}).encode()
-            result = host.asgi_request('blogwatcher-dashboard', str(package / 'dashboard'), 'plugin_api.py', 'POST', '/articles/summary', '', [('Content-Type', 'application/json')], payload)
+            result = host.asgi_request('hermes-blogwatcher', str(package / 'dashboard'), 'plugin_api.py', 'POST', '/articles/summary', '', [('Content-Type', 'application/json')], payload)
             answer = json.loads(result['body'])
             if result['status'] != 200:
                 raise RuntimeError(f'HTTP {result["status"]}: {answer}')

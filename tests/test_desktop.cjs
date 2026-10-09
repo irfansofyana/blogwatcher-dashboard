@@ -34,6 +34,7 @@ test('desktop plugin contributes a Blogwatcher page', async () => {
     throw new Error('Unsupported import: ' + name);
   });
   await module.evaluate();
+  assert.equal(module.namespace.default.id, 'hermes-blogwatcher');
   const contributions = [];
   const calls = [];
   module.namespace.default.register({ register: value => contributions.push(value), rest: async (route, opts) => { calls.push({ route, opts }); return { items: [] }; } });
