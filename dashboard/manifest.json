@@ -3,7 +3,7 @@
   "label": "Blogwatcher",
   "description": "Read and manage your original Blogwatcher subscriptions",
   "icon": "Globe",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "tab": { "path": "/blogwatcher", "position": "end" },
   "entry": "dist/index.js",
   "api": "plugin_api.py"

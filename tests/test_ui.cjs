@@ -56,6 +56,30 @@ test('source form keeps the draft until add succeeds', () => {
   assert.equal(setters.filter(([n]) => n === 6).length, 0, 'form must not clear before the API succeeds');
 });
 
+test('title opens details without inference or read mutations', () => {
+  let view, index = 0;
+  const calls = [], changes = [];
+  const article = {id: 1, title: 'Article title', blog: 'Source', url: 'https://example.org', status: 'new'};
+  const context = { window: {
+    __HERMES_PLUGIN_SDK__: {
+      React: {createElement: (type, props, ...children) => ({type, props, children})},
+      hooks: {useState: value => {const n = index++; return [n === 4 ? {items: [article], total: 1} : value, next => changes.push(next)];}, useEffect: () => {}, useRef: value => ({current: value})},
+      fetchJSON: (...args) => {calls.push(args); return Promise.resolve({});},
+    }, __HERMES_PLUGINS__: {register: (id, fn) => {view = fn;}},
+  }};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../dashboard/dist/index.js'), 'utf8'), context);
+  function find(n) {
+    if (Array.isArray(n)) return n.map(find).find(Boolean);
+    if (!n || typeof n !== 'object') return null;
+    return n.type === 'button' && flatten(n) === 'Article title' ? n : find(n.children);
+  }
+  const title = find(view());
+  assert.ok(title, 'article title must open a detail panel');
+  title.props.onClick();
+  assert.equal(calls.length, 0);
+  assert.ok(changes.includes(article));
+});
+
 test('superseded loads cannot overwrite current results', async () => {
   let view, effect, index = 0;
   const setters = [], pending = [], generation = { current: 0 };

@@ -12,6 +12,8 @@ ROOT = str(Path(__file__).resolve().parents[1])
 sys.path.insert(0, ROOT)
 try:
     from blogwatcher_core import BlogwatcherCLI, BlogwatcherError
+    from article_content import ContentError
+    from article_summary import SummaryError, profile_service, model_configuration
 finally:
     sys.path.remove(ROOT)
 
@@ -44,6 +46,26 @@ class ScanBody(BaseModel):
 
 class ArticleBody(BaseModel):
     article_id: int = Field(gt=0)
+
+
+class SummaryBody(ArticleBody):
+    consent: bool = False
+
+
+@router.post("/articles/summary")
+def summarize_article(body: SummaryBody):
+    if not body.consent:
+        raise HTTPException(status_code=400, detail="Confirm sending retrieved article text to your configured Hermes model provider")
+    try:
+        article = next((a for a in BlogwatcherCLI().articles(all_articles=True) if a['id'] == body.article_id), None)
+        if article is None:
+            raise HTTPException(status_code=404, detail="Article no longer exists in Blogwatcher")
+        return profile_service().summarize(article, model_configuration())
+    except BlogwatcherError as exc:
+        raise HTTPException(status_code=502, detail={'code': 'cli_failed', 'message': str(exc)}) from exc
+    except (ContentError, SummaryError) as exc:
+        status = 429 if exc.code == 'summary_busy' else 502
+        raise HTTPException(status_code=status, detail={'code': exc.code, 'message': str(exc)}) from exc
 
 
 class ReadAllBody(BaseModel):

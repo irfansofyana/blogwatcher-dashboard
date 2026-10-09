@@ -49,6 +49,24 @@ class ToolTests(unittest.TestCase):
 
 
 class ApiTests(unittest.TestCase):
+    def test_summary_requires_consent_before_lookup(self):
+        from fastapi import HTTPException
+        from dashboard.plugin_api import SummaryBody, summarize_article
+        with patch('dashboard.plugin_api.BlogwatcherCLI') as cli:
+            with self.assertRaises(HTTPException) as error:
+                summarize_article(SummaryBody(article_id=1, consent=False))
+            self.assertEqual(error.exception.status_code, 400)
+            cli.assert_not_called()
+
+    def test_removed_article_cannot_be_summarized(self):
+        from fastapi import HTTPException
+        from dashboard.plugin_api import SummaryBody, summarize_article
+        with patch('dashboard.plugin_api.BlogwatcherCLI') as cli:
+            cli.return_value.articles.return_value = []
+            with self.assertRaises(HTTPException) as error:
+                summarize_article(SummaryBody(article_id=1, consent=True))
+            self.assertEqual(error.exception.status_code, 404)
+
     def test_api_routes_provide_inbox_and_mutations(self):
         from dashboard.plugin_api import router
         paths = {(r.path, method) for r in router.routes for method in r.methods}

@@ -14,11 +14,14 @@ test('desktop plugin contributes a Blogwatcher page', async () => {
   const source = fs.readFileSync(path.join(__dirname, '../desktop/plugin.js'), 'utf8');
   const ctx = vm.createContext({ URLSearchParams, console });
   const module = new vm.SourceTextModule(source, { context: ctx });
+  let index = 0;
+  const changes = [];
+  const article = {id: 1, title: 'Article title', url: 'https://example.org', blog: 'Source', status: 'new'};
   const h = (type, props, ...children) => ({ type, props: { ...props, children: children.length === 1 ? children[0] : children } });
   await module.link(name => {
     if (name === 'react') return new vm.SyntheticModule(['createElement', 'useState', 'useEffect', 'useRef'], function () {
       this.setExport('createElement', h);
-      this.setExport('useState', value => [value, () => {}]);
+      this.setExport('useState', value => {const n = index++; return [n === 4 ? {items: [article], total: 1} : value, next => changes.push(next)];});
       this.setExport('useEffect', () => {});
       this.setExport('useRef', value => ({ current: value }));
     }, { context: ctx });
@@ -38,13 +41,22 @@ test('desktop plugin contributes a Blogwatcher page', async () => {
   assert.equal(page.data.path, '/blogwatcher');
   assert.ok(contributions.some(x => x.area === 'sidebarNav'));
   const element = page.render();
-  assert.match(text(element.type(element.props)), /Unread/);
-  assert.match(text(element.type(element.props)), /Sources/);
+  const tree = element.type(element.props);
+  assert.match(text(tree), /Unread/);
+  assert.match(text(tree), /Sources/);
   function find(n) {
     if (Array.isArray(n)) return n.map(find).find(Boolean);
     if (!n || typeof n !== 'object') return null;
     return n.type === 'button' && text(n) === 'Scan now' ? n : find(n.props?.children);
   }
-  find(element.type(element.props)).props.onClick();
+  function findTitle(n) {
+    if (Array.isArray(n)) return n.map(findTitle).find(Boolean);
+    if (!n || typeof n !== 'object') return null;
+    return n.type === 'button' && text(n) === 'Article title' ? n : findTitle(n.props?.children);
+  }
+  findTitle(tree).props.onClick();
+  assert.equal(calls.length, 0);
+  assert.ok(changes.includes(article));
+  find(tree).props.onClick();
   assert.ok(calls.find(c => c.route === '/scan').opts.timeoutMs > 180000);
 });
