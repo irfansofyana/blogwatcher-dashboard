@@ -6,10 +6,11 @@ Read and manage your [original Blogwatcher](https://github.com/Hyaxia/blogwatche
 
 - Unread/all inbox, source filters, pagination and read/unread controls.
 - Add/remove sources and scan on demand. Removal deletes the source's articles.
-- Click an article for details; explicitly **Summarize** using your Hermes model. Opening or summarizing never marks it read.
+- Expand multiple articles inline, with formatted summaries and independent controls. Opening loads saved results without publisher access or inference.
+- Explicitly **Summarize** or **Regenerate** using your Hermes model. Neither action marks articles read.
 - Read-only agent tools for articles and subscriptions.
 
-Summaries use retrieved text, not headlines. They show coverage and model attribution, cache successful results for seven days, and require consent before sending article text to your model provider. Hermes may retry or use configured fallback models; the plugin never retries a generation itself. Inaccessible/blocked pages produce an error, not a guessed summary. Private-network fetches are blocked.
+Summaries use retrieved text, not headlines. They show coverage and model attribution, reuse successful results for seven days (50 MiB cap), display older saved results as stale until eviction, and require consent before sending article text to your model provider. Hermes may retry or use configured fallback models; the plugin never retries a generation itself. Inaccessible/blocked pages produce an error, not a guessed summary. Private-network fetches are blocked.
 
 ## Install
 

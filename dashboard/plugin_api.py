@@ -50,6 +50,18 @@ class ArticleBody(BaseModel):
 
 class SummaryBody(ArticleBody):
     consent: bool = False
+    regenerate: bool = False
+
+
+@router.get("/articles/{article_id}/summary")
+def get_saved_summary(article_id: int):
+    try:
+        article = next((a for a in BlogwatcherCLI().articles(all_articles=True) if a['id'] == article_id), None)
+        if article is None:
+            raise HTTPException(status_code=404, detail="Article no longer exists in Blogwatcher")
+        return {'summary': profile_service().saved_summary(article)}
+    except BlogwatcherError as exc:
+        raise HTTPException(status_code=502, detail={'code': 'cli_failed', 'message': str(exc)}) from exc
 
 
 @router.post("/articles/summary")
@@ -60,7 +72,7 @@ def summarize_article(body: SummaryBody):
         article = next((a for a in BlogwatcherCLI().articles(all_articles=True) if a['id'] == body.article_id), None)
         if article is None:
             raise HTTPException(status_code=404, detail="Article no longer exists in Blogwatcher")
-        return profile_service().summarize(article, model_configuration())
+        return profile_service().summarize(article, model_configuration(), regenerate=body.regenerate)
     except BlogwatcherError as exc:
         raise HTTPException(status_code=502, detail={'code': 'cli_failed', 'message': str(exc)}) from exc
     except (ContentError, SummaryError) as exc:

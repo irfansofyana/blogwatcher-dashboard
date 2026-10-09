@@ -49,6 +49,26 @@ class ToolTests(unittest.TestCase):
 
 
 class ApiTests(unittest.TestCase):
+    def test_saved_summary_http_lookup_and_explicit_regenerate(self):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from dashboard.plugin_api import router
+        app = FastAPI(); app.include_router(router)
+        client = TestClient(app)
+        article = {'id': 1, 'url': 'https://example.org/one'}
+        with patch('dashboard.plugin_api.BlogwatcherCLI') as cli, patch('dashboard.plugin_api.profile_service') as service, patch('dashboard.plugin_api.model_configuration', return_value='a'):
+            cli.return_value.articles.return_value = [article]
+            service.return_value.saved_summary.return_value = {'text': 'Saved', 'cached': True}
+            response = client.get('/articles/1/summary')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()['summary']['text'], 'Saved')
+            service.return_value.summarize.assert_not_called()
+            service.return_value.summarize.return_value = {'text': 'Fresh'}
+            response = client.post('/articles/summary', json={'article_id': 1, 'consent': True, 'regenerate': True})
+            self.assertEqual(response.status_code, 200)
+            service.return_value.summarize.assert_called_once_with(article, 'a', regenerate=True)
+            self.assertEqual(client.get('/articles/2/summary').status_code, 404)
+
     def test_summary_requires_consent_before_lookup(self):
         from fastapi import HTTPException
         from dashboard.plugin_api import SummaryBody, summarize_article

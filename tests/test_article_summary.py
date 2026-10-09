@@ -54,6 +54,39 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual(len(self.calls), 1)
         self.assertEqual(second['source_url'], self.article['url'])
 
+    def test_saved_summary_loads_offline_and_after_service_restart(self):
+        first = self.service.summarize(self.article, 'a')
+        service = SummaryService(self.tmp.name, fetch=lambda _: self.fail('Must not fetch'), generate=lambda *_: self.fail('Must not generate'))
+        saved = service.saved_summary(self.article)
+        self.assertEqual(saved['text'], first['text'])
+        self.assertTrue(saved['cached'])
+        self.assertFalse(saved['stale'])
+
+    def test_stale_summary_is_visible_but_regeneration_replaces_it(self):
+        import json, time
+        from article_summary import TTL
+        self.service.summarize(self.article, 'a')
+        path = next(Path(self.tmp.name).glob('*.json'))
+        old = json.loads(path.read_text()); old['generated_at'] = time.time() - TTL - 1
+        path.write_text(json.dumps(old))
+        self.assertTrue(self.service.saved_summary(self.article)['stale'])
+        result = self.service.summarize(self.article, 'a', regenerate=True)
+        self.assertFalse(result['cached'])
+        self.assertEqual(len(self.calls), 2)
+        self.assertFalse(self.service.saved_summary(self.article)['stale'])
+
+    def test_regeneration_bypasses_fresh_cache_and_failed_attempt_keeps_saved(self):
+        self.service.summarize(self.article, 'a')
+        self.service.summarize(self.article, 'a', regenerate=True)
+        self.assertEqual(len(self.calls), 2)
+        def fail(*args):
+            raise RuntimeError('failed')
+        self.service.generate = fail
+        with self.assertRaises(SummaryError):
+            self.service.summarize(self.article, 'a', regenerate=True)
+        self.assertIsNotNone(self.service.saved_summary(self.article))
+        self.assertIsNone(self.service.saved_summary({'url': 'https://example.org/other'}))
+
     def test_configuration_change_invalidates_cache(self):
         self.service.summarize(self.article, 'a')
         self.service.summarize(self.article, 'b')

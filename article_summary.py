@@ -36,7 +36,19 @@ class SummaryService:
         self.guard = threading.Lock()
         self.inflight = {}
 
-    def summarize(self, article, configuration):
+    def saved_summary(self, article):
+        """Read existing successful results without publisher access or inference."""
+        answers = []
+        for path in self.directory.glob('*.json'):
+            data = self._read(path, allow_stale=True)
+            if data and data.get('source_url') == article.get('url'):
+                answers.append(data)
+        if not answers:
+            return None
+        result = max(answers, key=lambda item: item['generated_at'])
+        return {**result, 'cached': True, 'stale': time.time() - result['generated_at'] >= TTL}
+
+    def summarize(self, article, configuration, regenerate=False):
         if not article.get('url'):
             raise SummaryError('This article has no permitted website URL', 'unsafe_url')
         identity = (article['url'], configuration)
@@ -51,7 +63,7 @@ class SummaryService:
                     future.set_exception(SummaryError('Two summaries are already running. Try again shortly.', 'summary_busy'))
                 else:
                     try:
-                        future.set_result(self._run(article, configuration))
+                        future.set_result(self._run(article, configuration, regenerate))
                     except Exception as exc:
                         future.set_exception(exc)
                     finally:
@@ -66,7 +78,7 @@ class SummaryService:
                 if record['users'] == 0:
                     del self.inflight[identity]
 
-    def _run(self, article, configuration):
+    def _run(self, article, configuration, regenerate=False):
         try:
             content = self.fetch(article['url'])
             retrieved_at = time.time()
@@ -75,7 +87,7 @@ class SummaryService:
             self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
             path = self.directory / (key + '.json')
             cached = self._read(path)
-            if cached:
+            if cached and not regenerate:
                 return {**cached, 'cached': True}
             result = self.generate(content['text'], content['final_url'])
             if not isinstance(result, dict) or not isinstance(result.get('text'), str) or not result['text'].strip() or len(result['text']) > 16000:
@@ -93,12 +105,14 @@ class SummaryService:
             # Do not expose provider messages/tokens/paths to the renderer.
             raise SummaryError('Summary generation failed or timed out. The plugin did not retry; Hermes may have retried or used fallback models, consuming tokens.', 'model_failed') from exc
 
-    def _read(self, path):
+    def _read(self, path, allow_stale=False):
         try:
             if path.stat().st_size > 24000:
                 return None
             data = json.loads(path.read_text())
-            if time.time() - data['generated_at'] < TTL and isinstance(data['text'], str) and data['text'].strip():
+            if (allow_stale or time.time() - data['generated_at'] < TTL) and isinstance(data['text'], str) and data['text'].strip():
+                if not isinstance(data['generated_at'], (int, float)):
+                    return None
                 return data
         except (OSError, ValueError, KeyError, TypeError):
             return None
