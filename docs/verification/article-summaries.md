@@ -12,6 +12,8 @@ Base main: 6ea58daecbbef3d02f7d075e61940fffdaa064eb
 - Actual separate `hermes dashboard` launch on loopback port9137 with an isolated home and checkout symlink also returned HTTP200 from authenticated production summary endpoint, without manual host.load; a web browser opened details successfully.
 - Local suite at this point: 37 Python tests (one optional runtime integration skipped in the plain interpreter); five JS behavior tests pass. Explicit runtime integration/live bridge command must run separately before publication.
 - CI workflow added; remote CI not yet exercised.
+- Review fixes: concurrent failures are shared through an in-flight Future (regression reproduced two generations before fix); complete retrieval runs in a disposable worker killed at an absolute deadline (slow-header regression passes). Final local suite: 39 Python and five JavaScript tests pass, including runtime bridge integration.
+- Approved retry-policy amendment: Hermes owns internal retries/fallbacks; disclose them before inference. Plugin-level retries and duplicate generations remain prohibited. No host-global retry settings changed.
 
 ## Rulings
 - Extraction uses a small standard-library HTML parser favoring article/main and ignoring navigation/scripts. Fallback is excerpt-only, not full fidelity. This avoids mutating Hermes dependencies; complex publisher layouts can still fail or yield weaker coverage and are not hidden.

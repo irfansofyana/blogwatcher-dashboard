@@ -35,7 +35,7 @@ def bind_context(ctx):
 
 
 def summarize_text(text, source_url):
-    """One bounded, tool-free call; provider failures propagate without retries."""
+    """One tool-free facade call; Hermes owns provider retries and fallback policy."""
     if not isinstance(text, str) or not text.strip() or len(text) > 30000:
         raise ValueError("Article text must contain 1–30000 characters")
     llm = getattr(_context, "llm", None)

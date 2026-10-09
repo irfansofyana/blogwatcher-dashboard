@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from article_content import ContentError, public_target, extract_text, fetch_article
+from article_content import ContentError, public_target, extract_text, _fetch_article
 
 class ContentTests(unittest.TestCase):
     def test_private_and_mapped_destinations_are_blocked(self):
@@ -37,6 +37,29 @@ class ContentTests(unittest.TestCase):
         self.assertLessEqual(len(result['text']), 30000)
         self.assertEqual(result['coverage'], 'excerpt only')
 
+    def test_worker_deadline_interrupts_slow_headers(self):
+        import sys, time
+        from article_content import run_fetch_worker
+        # The worker is stuck receiving headers trickled faster than a socket timeout.
+        code = '''import socket,threading,time,http.client
+left,right=socket.socketpair()
+def trickle():
+ right.sendall(b"HTTP/1.1 200 OK\\r\\n")
+ for i in range(100):
+  time.sleep(.04)
+  right.sendall(b"X-Trickle: yes\\r\\n")
+threading.Thread(target=trickle,daemon=True).start()
+connection=http.client.HTTPConnection("example.org")
+connection.sock=left
+left.settimeout(.15)
+connection.getresponse()
+'''
+        started = time.monotonic()
+        with self.assertRaises(ContentError) as error:
+            run_fetch_worker([sys.executable, '-c', code], timeout=.15)
+        self.assertEqual(error.exception.code, 'fetch_timeout')
+        self.assertLess(time.monotonic() - started, 1)
+
     def test_redirect_to_private_network_is_blocked_before_second_connection(self):
         connections = []
         class Response:
@@ -54,5 +77,5 @@ class ContentTests(unittest.TestCase):
         def resolve(host, *args):
             return ['169.254.169.254'] if host == '169.254.169.254' else ['93.184.216.34']
         with patch('article_content._resolve', resolve), self.assertRaises(ContentError):
-            fetch_article('https://example.org/post', connection_factory=factory)
+            _fetch_article('https://example.org/post', connection_factory=factory)
         self.assertEqual(len(connections), 1)

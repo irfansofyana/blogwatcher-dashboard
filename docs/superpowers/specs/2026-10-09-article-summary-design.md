@@ -23,9 +23,9 @@ Host-owned Hermes LLM calls are preferred to direct provider SDKs: no keys in re
 - Fetch wall-clock deadline 20 seconds, maximum decoded response 2 MiB, maximum model input 30000 characters. Allow HTML/plain-text only. Reject login/challenge/empty extraction; remove scripts/styles/navigation with an article extraction library.
 
 ## Model and cache behavior
-- One bounded host-managed LLM call with a 60-second timeout, maximum output 800 tokens, and no tools. Article text is untrusted evidence, explicitly separated from system instructions.
+- One host-managed facade call with a 60-second per-call timeout, maximum output 800 tokens, and no tools. The user approved inheriting Hermes’s internal retry/fallback policy; disclose possible additional token spend before generation. The plugin itself never retries generation. Article text is untrusted evidence, explicitly separated from system instructions.
 - Cache successful results in plugin-owned profile-scoped storage, never Blogwatcher SQLite. Key includes article URL, normalized content hash, prompt version and resolved model configuration. Cache 7 days, cap storage at 50 MiB; evict oldest records. Do not persist credentials or raw HTML.
-- Metadata lookup per request prevents returning a summary for a removed article. Concurrent same-article/config requests share one generation; no automatic paid retry. Bound concurrent generations to 2 per profile. A timeout/disconnect may have consumed tokens; say so before offering an explicit retry.
+- Metadata lookup per request prevents returning a summary for a removed article. Concurrent same-article/config requests share one generation and the same failure; no plugin-level automatic retry. Hermes-owned retries/fallbacks remain permitted by explicit user approval. Bound concurrent generations to 2 per profile. A timeout/disconnect may have consumed tokens; say so before offering an explicit retry.
 - No process-global cross-profile cache or credentials. Background tasks preserve owning profile scope. If jobs are asynchronous, expose opaque job IDs and reject cross-profile reads. On restart in-flight jobs fail clearly; never report completion from missing state.
 
 ## Reliability improvements in this slice

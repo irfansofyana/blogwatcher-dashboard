@@ -57,12 +57,12 @@
       setSelected(article); setSummary(null); setSummaryError(''); setSummarizing(false);
     }
     function summarize() {
-      if (!window.confirm('Fetch this article and send its text to your configured Hermes model provider? This may use paid tokens.')) return;
+      if (!window.confirm('Fetch this article and send its text to Hermes? Its configured model provider may retry or use fallback models, which can consume additional tokens.')) return;
       const request = ++selection.current;
       setSummarizing(true); setSummaryError('');
       api('/articles/summary', { article_id: selected.id, consent: true })
         .then(result => { if (selection.current === request) setSummary(result); })
-        .catch(e => { if (selection.current === request) setSummaryError(e.message || 'Could not summarize. No automatic retry was made.'); })
+        .catch(e => { if (selection.current === request) setSummaryError(e.message || 'Could not summarize. The plugin did not retry; Hermes may have retried or used fallback models.'); })
         .finally(() => { if (selection.current === request) setSummarizing(false); });
     }
     const button = (label, onClick, extra = {}) => h('button', { type: 'button', onClick, disabled: busy || extra.disabled, className: 'rounded-md border border-border px-3 py-2 text-sm hover:bg-muted disabled:opacity-50', ...extra }, label);

@@ -10,7 +10,7 @@
 ## Global Constraints
 - HTTP(S) only; reject private, loopback, link-local, multicast, reserved and unspecified IPv4/IPv6, including mapped addresses.
 - At most 3 redirects; 20-second fetch wall-clock deadline; maximum decoded response 2 MiB; maximum model input 30000 characters.
-- Model timeout 60 seconds; maximum output 800 tokens; no tools or automatic paid retries.
+- Model facade timeout 60 seconds; maximum output 800 tokens; no tools or plugin-level retries. Approved amendment: disclose and inherit Hermes-owned retry/fallback policy.
 - Successful-result cache 7 days, maximum 50 MiB; at most 2 concurrent generations per profile.
 - No Hermes core patches, renderer credentials, direct provider clients or Blogwatcher SQLite writes.
 - No live install/restart or merge without user approval.

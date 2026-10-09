@@ -16,6 +16,36 @@ class SummaryTests(unittest.TestCase):
         self.service = SummaryService(Path(self.tmp.name), fetch=lambda url: {'text': TEXT, 'coverage': 'extracted article text', 'source_url': url, 'final_url': url}, generate=generate)
         self.article = {'id': 1, 'url': 'https://example.org/one', 'title': 'One'}
 
+    def test_concurrent_failure_is_shared_without_second_generation(self):
+        import threading, time
+        entered, release = threading.Event(), threading.Event()
+        def generate(text, url):
+            self.calls.append(text)
+            entered.set(); release.wait(2)
+            raise RuntimeError('ambiguous provider failure')
+        self.service.generate = generate
+        errors = []
+        def request():
+            try:
+                self.service.summarize(self.article, 'a')
+            except SummaryError as error:
+                errors.append(str(error))
+        first = threading.Thread(target=request); first.start()
+        self.assertTrue(entered.wait(1))
+        second = threading.Thread(target=request); second.start()
+        deadline = time.monotonic() + 1
+        while time.monotonic() < deadline:
+            with self.service.guard:
+                records = getattr(self.service, 'inflight', None)
+                users = [r['users'] for r in records.values()] if records is not None else [r[1] for r in self.service.locks.values()]
+                if 2 in users:
+                    break
+            time.sleep(.01)
+        release.set(); first.join(3); second.join(3)
+        self.assertEqual(len(errors), 2)
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(errors[0], errors[1])
+
     def test_success_is_cached_without_second_model_call(self):
         first = self.service.summarize(self.article, 'configuration-a')
         second = self.service.summarize(self.article, 'configuration-a')

@@ -9,7 +9,7 @@ Read and manage your [original Blogwatcher](https://github.com/Hyaxia/blogwatche
 - Click an article for details; explicitly **Summarize** using your Hermes model. Opening or summarizing never marks it read.
 - Read-only agent tools for articles and subscriptions.
 
-Summaries use retrieved text, not headlines. They show coverage and model attribution, cache successful results for seven days, and require consent before sending article text to your model provider. Inaccessible/blocked pages produce an error, not a guessed summary. Private-network fetches are blocked.
+Summaries use retrieved text, not headlines. They show coverage and model attribution, cache successful results for seven days, and require consent before sending article text to your model provider. Hermes may retry or use configured fallback models; the plugin never retries a generation itself. Inaccessible/blocked pages produce an error, not a guessed summary. Private-network fetches are blocked.
 
 ## Install
 

@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BridgeTests(unittest.TestCase):
-    def test_provider_failure_is_not_retried_or_replaced(self):
+    def test_bridge_does_not_repeat_failed_facade_call(self):
         package = load_package()
         bridge = importlib.import_module(package.__name__ + ".summary_bridge")
         calls = []

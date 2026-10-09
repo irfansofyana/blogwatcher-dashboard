@@ -48,12 +48,12 @@ function BlogwatcherPage({ ctx }) {
     setSelected(article); setSummary(null); setSummaryError(''); setSummarizing(false);
   }
   function summarize() {
-    if (!window.confirm('Fetch this article and send its text to your configured Hermes model provider? This may use paid tokens.')) return;
+    if (!window.confirm('Fetch this article and send its text to Hermes? Its configured model provider may retry or use fallback models, which can consume additional tokens.')) return;
     const request = ++selection.current;
     setSummarizing(true); setSummaryError('');
     ctx.rest('/articles/summary', { method: 'POST', body: { article_id: selected.id, consent: true }, timeoutMs: 175000 })
       .then(result => { if (request === selection.current) setSummary(result); })
-      .catch(e => { if (request === selection.current) setSummaryError(e.message || 'Summary request failed. No automatic retry was made.'); })
+      .catch(e => { if (request === selection.current) setSummaryError(e.message || 'Summary request failed. Hermes may still be processing or retrying; wait before requesting another summary.'); })
       .finally(() => { if (request === selection.current) setSummarizing(false); });
   }
   const button = (label, onClick, extra = {}) => h('button', { type: 'button', onClick, disabled: busy || extra.disabled, className: 'rounded-md border border-(--ui-stroke-secondary) px-3 py-2 text-sm hover:opacity-70 disabled:opacity-50', ...extra }, label);

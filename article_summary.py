@@ -4,6 +4,7 @@ import json
 import os
 import threading
 import time
+from concurrent.futures import Future, TimeoutError
 from pathlib import Path
 
 from article_content import fetch_article, ContentError
@@ -33,34 +34,37 @@ class SummaryService:
         self.generate = generate
         self.slots = threading.BoundedSemaphore(2)
         self.guard = threading.Lock()
-        self.locks = {}
+        self.inflight = {}
 
     def summarize(self, article, configuration):
         if not article.get('url'):
             raise SummaryError('This article has no permitted website URL', 'unsafe_url')
         identity = (article['url'], configuration)
         with self.guard:
-            lock, users = self.locks.get(identity, (threading.Lock(), 0))
-            self.locks[identity] = (lock, users + 1)
+            owner = identity not in self.inflight
+            record = self.inflight.setdefault(identity, {'future': Future(), 'users': 0})
+            record['users'] += 1
+            future = record['future']
         try:
-            if not lock.acquire(timeout=85):
-                raise SummaryError('A summary is still running. Refresh before trying again.', 'summary_busy')
-            try:
+            if owner:
                 if not self.slots.acquire(blocking=False):
-                    raise SummaryError('Two summaries are already running. Try again shortly.', 'summary_busy')
-                try:
-                    return self._run(article, configuration)
-                finally:
-                    self.slots.release()
-            finally:
-                lock.release()
+                    future.set_exception(SummaryError('Two summaries are already running. Try again shortly.', 'summary_busy'))
+                else:
+                    try:
+                        future.set_result(self._run(article, configuration))
+                    except Exception as exc:
+                        future.set_exception(exc)
+                    finally:
+                        self.slots.release()
+            try:
+                return future.result(timeout=85)
+            except TimeoutError as exc:
+                raise SummaryError('A summary is still running. The host may have retried; refresh before requesting it again.', 'summary_busy') from exc
         finally:
             with self.guard:
-                current, users = self.locks[identity]
-                if users == 1:
-                    del self.locks[identity]
-                else:
-                    self.locks[identity] = (current, users - 1)
+                record['users'] -= 1
+                if record['users'] == 0:
+                    del self.inflight[identity]
 
     def _run(self, article, configuration):
         try:
@@ -87,7 +91,7 @@ class SummaryService:
             raise
         except Exception as exc:
             # Do not expose provider messages/tokens/paths to the renderer.
-            raise SummaryError('Summary generation failed or timed out. No automatic retry was made; the provider may have consumed tokens.', 'model_failed') from exc
+            raise SummaryError('Summary generation failed or timed out. The plugin did not retry; Hermes may have retried or used fallback models, consuming tokens.', 'model_failed') from exc
 
     def _read(self, path):
         try:

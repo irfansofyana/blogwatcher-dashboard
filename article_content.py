@@ -95,7 +95,7 @@ def extract_text(body, plain=False):
     return {'text': text[:MAX_TEXT], 'coverage': coverage}
 
 
-def fetch_article(url, connection_factory=None):
+def _fetch_article(url, connection_factory=None):
     deadline = time.monotonic() + FETCH_SECONDS
     original = url
     for hop in range(4):
@@ -156,3 +156,33 @@ def fetch_article(url, connection_factory=None):
         finally:
             conn.close()
     raise ContentError('Could not retrieve article')
+
+
+def run_fetch_worker(command, timeout=FETCH_SECONDS):
+    """Kill the disposable transport worker at its wall deadline, including headers."""
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=True)
+        payload = json.loads(result.stdout)
+        if not payload['ok']:
+            raise ContentError(payload['message'], payload['code'])
+        return payload['result']
+    except subprocess.TimeoutExpired as exc:
+        raise ContentError('Article retrieval timed out', 'fetch_timeout') from exc
+    except (subprocess.SubprocessError, ValueError, KeyError) as exc:
+        raise ContentError('Article retrieval worker failed', 'fetch_failed') from exc
+
+
+def fetch_article(url):
+    from pathlib import Path
+    # A fixed package-owned script, isolated interpreter and an argv URL, never a shell.
+    return run_fetch_worker([sys.executable, '-I', str(Path(__file__).resolve()), '--fetch', url])
+
+
+if __name__ == '__main__':
+    try:
+        if len(sys.argv) != 3 or sys.argv[1] != '--fetch':
+            raise ContentError('Invalid retrieval request')
+        payload = {'ok': True, 'result': _fetch_article(sys.argv[2])}
+    except ContentError as error:
+        payload = {'ok': False, 'message': str(error), 'code': error.code}
+    print(json.dumps(payload))
