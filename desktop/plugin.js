@@ -1,6 +1,6 @@
 /* Native Hermes Desktop page. The Python plugin owns all CLI operations. */
 import { host, ROUTES_AREA, SIDEBAR_NAV_AREA } from '@hermes/plugin-sdk';
-import { createElement as h, useState, useEffect, useRef } from '@hermes/plugin-sdk/react';
+import { createElement as h, useState, useEffect, useRef } from 'react';
 
 // Deliberately small Markdown subset. Raw HTML and links remain text nodes.
 function summaryMarkdown(text) {

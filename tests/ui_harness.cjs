@@ -31,7 +31,7 @@ async function harness(desktop) {
   if (desktop) {
     const module = new vm.SourceTextModule(fs.readFileSync(path.join(__dirname, '../desktop/plugin.js'), 'utf8'), { context });
     await module.link(name => {
-      const exports = name === '@hermes/plugin-sdk/react' ? hooks : name === '@hermes/plugin-sdk' ? { host: { navigate() {} }, ROUTES_AREA: 'routes', SIDEBAR_NAV_AREA: 'nav' } : null;
+      const exports = name === 'react' ? hooks : name === '@hermes/plugin-sdk' ? { host: { navigate() {} }, ROUTES_AREA: 'routes', SIDEBAR_NAV_AREA: 'nav' } : null;
       assert.ok(exports, 'Unsupported import: ' + name);
       return new vm.SyntheticModule(Object.keys(exports), function () { for (const [key, value] of Object.entries(exports)) this.setExport(key, value); }, { context });
     });

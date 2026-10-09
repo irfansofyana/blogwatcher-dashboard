@@ -20,7 +20,7 @@ test('desktop plugin contributes a Blogwatcher page', async () => {
   const article = {id: 1, title: 'Article title', url: 'https://example.org', blog: 'Source', status: 'new'};
   const h = (type, props, ...children) => ({ type, props: { ...props, children: children.length === 1 ? children[0] : children } });
   await module.link(name => {
-    if (name === '@hermes/plugin-sdk/react') return new vm.SyntheticModule(['createElement', 'useState', 'useEffect', 'useRef'], function () {
+    if (name === 'react') return new vm.SyntheticModule(['createElement', 'useState', 'useEffect', 'useRef'], function () {
       this.setExport('createElement', h);
       this.setExport('useState', value => {const n = index++; return [n === 4 ? {items: [article], total: 1} : value, next => changes.push(next)];});
       this.setExport('useEffect', () => {});
