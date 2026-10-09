@@ -1,0 +1,6 @@
+name: blogwatcher-dashboard
+version: "0.1.0"
+description: CLI-backed Blogwatcher inbox and source controls for Hermes Desktop and web
+provides_tools:
+  - blogwatcher_list_sources
+  - blogwatcher_list_articles
