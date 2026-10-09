@@ -52,6 +52,7 @@ threading.Thread(target=trickle,daemon=True).start()
 connection=http.client.HTTPConnection("example.org")
 connection.sock=left
 left.settimeout(.15)
+connection.request("GET", "/")
 connection.getresponse()
 '''
         started = time.monotonic()
