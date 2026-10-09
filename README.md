@@ -17,7 +17,7 @@ Summaries use retrieved text, not headlines. They show coverage and model attrib
 On the **Hermes backend host**, ensure `blogwatcher` is on the service's PATH, then:
 
 ```bash
-hermes plugins install https://github.com/irfansofyana/blogwatcher-dashboard --enable
+hermes plugins install https://github.com/irfansofyana/hermes-blogwatcher --enable
 ```
 
 Restart the **dashboard/API server** after installation or updates that add routes. Open **Blogwatcher** in the web sidebar. Keep Hermes's authentication enabled for remote access.
