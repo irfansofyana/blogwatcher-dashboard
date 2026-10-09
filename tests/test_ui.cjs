@@ -16,7 +16,7 @@ test('web plugin registers a native tab and its initial inbox shell', () => {
   const context = { window: {
     __HERMES_PLUGIN_SDK__: {
       React: { createElement: (type, props, ...children) => ({ type, props, children }) },
-      hooks: { useState: value => [value, () => {}], useEffect: () => {} },
+      hooks: { useState: value => [value, () => {}], useEffect: () => {}, useRef: value => ({ current: value }) },
       components: { Button: 'button', Card: 'card', Input: 'input' },
       fetchJSON: async () => ({ items: [] }),
     },
@@ -38,7 +38,7 @@ test('source form keeps the draft until add succeeds', () => {
   const context = { window: {
     __HERMES_PLUGIN_SDK__: {
       React: { createElement: (type, props, ...children) => ({ type, props, children }) },
-      hooks: { useState: value => { const n = index++; return [n === 0 ? 'sources' : value, next => setters.push([n, next])]; }, useEffect: () => {} },
+      hooks: { useState: value => { const n = index++; return [n === 0 ? 'sources' : value, next => setters.push([n, next])]; }, useEffect: () => {}, useRef: value => ({ current: value }) },
       components: {}, fetchJSON: async () => { throw new Error('offline'); },
     }, __HERMES_PLUGINS__: { register: (id, view) => registered[id] = view },
   }};
@@ -54,4 +54,27 @@ test('source form keeps the draft until add succeeds', () => {
   assert.ok(form);
   form.props.onSubmit({ preventDefault() {} });
   assert.equal(setters.filter(([n]) => n === 6).length, 0, 'form must not clear before the API succeeds');
+});
+
+test('superseded loads cannot overwrite current results', async () => {
+  let view, effect, index = 0;
+  const setters = [], pending = [], generation = { current: 0 };
+  const context = { URLSearchParams, window: {
+    __HERMES_PLUGIN_SDK__: {
+      React: { createElement: (type, props, ...children) => ({ type, props, children }) },
+      hooks: {
+        useState: value => { const n = index++; return [value, next => setters.push([n, next])]; },
+        useEffect: fn => { effect = fn; }, useRef: () => generation,
+      },
+      fetchJSON: () => new Promise(resolve => pending.push(resolve)),
+    }, __HERMES_PLUGINS__: { register: (id, fn) => { view = fn; } },
+  }};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../dashboard/dist/index.js'), 'utf8'), context);
+  view(); const cleanup = effect(); if (cleanup) cleanup();
+  index = 0; view(); effect();
+  pending[2]({ items: [] }); pending[3]({ items: ['new'], total: 1 });
+  await new Promise(resolve => setImmediate(resolve));
+  pending[0]({ items: [] }); pending[1]({ items: ['old'], total: 1 });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(setters.filter(([n]) => n === 4).map(([,value]) => value.items[0]), ['new']);
 });

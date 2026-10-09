@@ -1,6 +1,6 @@
 /* Native Hermes Desktop page. The Python plugin owns all CLI operations. */
 import { host, ROUTES_AREA, SIDEBAR_NAV_AREA } from '@hermes/plugin-sdk';
-import { createElement as h, useState, useEffect } from 'react';
+import { createElement as h, useState, useEffect, useRef } from 'react';
 
 function BlogwatcherPage({ ctx }) {
   const [view, setView] = useState('inbox');
@@ -14,20 +14,22 @@ function BlogwatcherPage({ ctx }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const LIMIT = 50;
+  const generation = useRef(0);
 
   function load() {
+    const request = ++generation.current;
     const query = new URLSearchParams({ all_articles: String(mode === 'all'), offset: String(page * LIMIT), limit: String(LIMIT) });
     if (blog) query.set('blog', blog);
     Promise.all([ctx.rest('/blogs'), ctx.rest('/articles?' + query.toString())])
-      .then(([s, a]) => { setSources(s.items); setArticles(a); setError(''); })
-      .catch(e => setError(e.message || 'Could not load Blogwatcher'));
+      .then(([s, a]) => { if (request !== generation.current) return; setSources(s.items); setArticles(a); setError(''); })
+      .catch(e => { if (request === generation.current) setError(e.message || 'Could not load Blogwatcher'); });
   }
-  useEffect(load, [mode, blog, page]);
+  useEffect(() => { load(); return () => { generation.current++; }; }, [mode, blog, page]);
   function action(route, body, onSuccess) {
     setBusy(true); setError(''); setNotice('');
-    ctx.rest(route, { method: 'POST', body })
+    ctx.rest(route, { method: 'POST', body, timeoutMs: route === '/scan' ? 195000 : route === '/blogs' ? 75000 : 45000 })
       .then(result => { if (onSuccess) onSuccess(); setNotice(result.message || 'Done'); load(); })
-      .catch(e => setError(e.message || 'Action failed')).finally(() => setBusy(false));
+      .catch(e => setError(`${e.message || 'Request failed'}. The CLI may still have completed this action; refresh before retrying.`)).finally(() => setBusy(false));
   }
   function confirmAction(message, route, body) {
     // Native confirm is explicit and keeps destructive actions out of a single tap.

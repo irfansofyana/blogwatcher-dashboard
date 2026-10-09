@@ -41,6 +41,11 @@ class ParsingTests(unittest.TestCase):
         with self.assertRaises(BlogwatcherError):
             parse_articles("Unread articles (3):\n  Something unexpected\n")
 
+    def test_empty_stdout_fails_closed(self):
+        for parser in (parse_articles, parse_blogs):
+            with self.assertRaises(BlogwatcherError):
+                parser("")
+
     def test_empty_result_is_not_error(self):
         self.assertEqual(parse_articles("No unread articles.\n"), [])
         self.assertEqual(parse_blogs("No blogs tracked.\n"), [])
@@ -79,6 +84,12 @@ class AdapterTests(unittest.TestCase):
         client = BlogwatcherCLI(binary=str(self.cli))
         with self.assertRaises(BlogwatcherError):
             client.read("1; echo pwn")
+        self.assertFalse(self.log.exists())
+
+    def test_flag_like_source_name_rejected_before_execution(self):
+        client = BlogwatcherCLI(binary=str(self.cli))
+        with self.assertRaises(BlogwatcherError):
+            client.add("--help", "https://example.org")
         self.assertFalse(self.log.exists())
 
     def test_missing_binary_is_error(self):

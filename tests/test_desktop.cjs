@@ -16,10 +16,11 @@ test('desktop plugin contributes a Blogwatcher page', async () => {
   const module = new vm.SourceTextModule(source, { context: ctx });
   const h = (type, props, ...children) => ({ type, props: { ...props, children: children.length === 1 ? children[0] : children } });
   await module.link(name => {
-    if (name === 'react') return new vm.SyntheticModule(['createElement', 'useState', 'useEffect'], function () {
+    if (name === 'react') return new vm.SyntheticModule(['createElement', 'useState', 'useEffect', 'useRef'], function () {
       this.setExport('createElement', h);
       this.setExport('useState', value => [value, () => {}]);
       this.setExport('useEffect', () => {});
+      this.setExport('useRef', value => ({ current: value }));
     }, { context: ctx });
     if (name === '@hermes/plugin-sdk') return new vm.SyntheticModule(['host', 'ROUTES_AREA', 'SIDEBAR_NAV_AREA'], function () {
       this.setExport('host', { navigate: () => {}, composer: {}, state: {} });
@@ -30,7 +31,8 @@ test('desktop plugin contributes a Blogwatcher page', async () => {
   });
   await module.evaluate();
   const contributions = [];
-  module.namespace.default.register({ register: value => contributions.push(value), rest: async () => ({ items: [] }) });
+  const calls = [];
+  module.namespace.default.register({ register: value => contributions.push(value), rest: async (route, opts) => { calls.push({ route, opts }); return { items: [] }; } });
   const page = contributions.find(x => x.area === 'routes');
   assert.ok(page);
   assert.equal(page.data.path, '/blogwatcher');
@@ -38,4 +40,11 @@ test('desktop plugin contributes a Blogwatcher page', async () => {
   const element = page.render();
   assert.match(text(element.type(element.props)), /Unread/);
   assert.match(text(element.type(element.props)), /Sources/);
+  function find(n) {
+    if (Array.isArray(n)) return n.map(find).find(Boolean);
+    if (!n || typeof n !== 'object') return null;
+    return n.type === 'button' && text(n) === 'Scan now' ? n : find(n.props?.children);
+  }
+  find(element.type(element.props)).props.onClick();
+  assert.ok(calls.find(c => c.route === '/scan').opts.timeoutMs > 180000);
 });

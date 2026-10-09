@@ -27,7 +27,9 @@ def _clean(text):
 
 def parse_articles(text):
     lines = _clean(text).splitlines()
-    if not lines or (len(lines) == 1 and lines[0].strip().lower().startswith("no ") and "articles" in lines[0].lower()):
+    if not lines:
+        raise BlogwatcherError("Empty blogwatcher article output")
+    if len(lines) == 1 and lines[0].strip() in ("No unread articles.", "No unread articles!", "No articles found.", "No articles.", "No articles found!"):
         return []
     count = _COUNT.fullmatch(lines[0].strip())
     if not count:
@@ -69,7 +71,9 @@ def _require_article(article, items):
 
 def parse_blogs(text):
     lines = _clean(text).splitlines()
-    if not lines or (len(lines) == 1 and lines[0].strip().lower().startswith("no ") and "blog" in lines[0].lower()):
+    if not lines:
+        raise BlogwatcherError("Empty blogwatcher blog output")
+    if len(lines) == 1 and lines[0].strip() in ("No blogs tracked.", "No blogs tracked yet.", "No blogs tracked yet. Use 'blogwatcher add' to add one."):
         return []
     count = _BLOG_COUNT.fullmatch(lines[0].strip())
     if not count:
@@ -109,7 +113,10 @@ def _require_blog(blog, items):
 def _text(value, label):
     if not isinstance(value, str) or not value.strip() or len(value) > 1000 or any(ord(c) < 32 or ord(c) == 127 for c in value):
         raise BlogwatcherError(f"Invalid {label}")
-    return value.strip()
+    value = value.strip()
+    if label == "blog name" and value.startswith("-"):
+        raise BlogwatcherError("Blog names must not begin with a dash")
+    return value
 
 
 def _url(value):

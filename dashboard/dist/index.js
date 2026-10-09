@@ -3,7 +3,7 @@
   'use strict';
   const SDK = window.__HERMES_PLUGIN_SDK__;
   const React = SDK.React;
-  const { useState, useEffect } = SDK.hooks;
+  const { useState, useEffect, useRef } = SDK.hooks;
   const h = React.createElement;
   const BASE = '/api/plugins/blogwatcher-dashboard';
 
@@ -25,15 +25,17 @@
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
     const LIMIT = 50;
+    const generation = useRef(0);
 
     function load() {
+      const request = ++generation.current;
       const query = new URLSearchParams({ all_articles: String(mode === 'all'), offset: String(page * LIMIT), limit: String(LIMIT) });
       if (blog) query.set('blog', blog);
       Promise.all([api('/blogs'), api('/articles?' + query.toString())])
-        .then(([s, a]) => { setSources(s.items); setArticles(a); setError(''); })
-        .catch(e => setError(e.message || 'Could not load Blogwatcher'));
+        .then(([s, a]) => { if (request !== generation.current) return; setSources(s.items); setArticles(a); setError(''); })
+        .catch(e => { if (request === generation.current) setError(e.message || 'Could not load Blogwatcher'); });
     }
-    useEffect(load, [mode, blog, page]);
+    useEffect(() => { load(); return () => { generation.current++; }; }, [mode, blog, page]);
     function action(route, body, onSuccess) {
       setBusy(true); setError(''); setNotice('');
       api(route, body).then(result => { if (onSuccess) onSuccess(); setNotice(result.message || 'Done'); load(); })
