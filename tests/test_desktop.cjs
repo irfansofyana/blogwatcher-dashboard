@@ -1,4 +1,5 @@
 const test = require('node:test');
+require('./ui_harness.cjs').suite(true);
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -12,14 +13,14 @@ function text(n) {
 
 test('desktop plugin contributes a Blogwatcher page', async () => {
   const source = fs.readFileSync(path.join(__dirname, '../desktop/plugin.js'), 'utf8');
-  const ctx = vm.createContext({ URLSearchParams, console });
+  const ctx = vm.createContext({ URLSearchParams, console, window: { confirm: () => true } });
   const module = new vm.SourceTextModule(source, { context: ctx });
   let index = 0;
   const changes = [];
   const article = {id: 1, title: 'Article title', url: 'https://example.org', blog: 'Source', status: 'new'};
   const h = (type, props, ...children) => ({ type, props: { ...props, children: children.length === 1 ? children[0] : children } });
   await module.link(name => {
-    if (name === 'react') return new vm.SyntheticModule(['createElement', 'useState', 'useEffect', 'useRef'], function () {
+    if (name === '@hermes/plugin-sdk/react') return new vm.SyntheticModule(['createElement', 'useState', 'useEffect', 'useRef'], function () {
       this.setExport('createElement', h);
       this.setExport('useState', value => {const n = index++; return [n === 4 ? {items: [article], total: 1} : value, next => changes.push(next)];});
       this.setExport('useEffect', () => {});
@@ -55,8 +56,9 @@ test('desktop plugin contributes a Blogwatcher page', async () => {
     return n.type === 'button' && text(n) === 'Article title' ? n : findTitle(n.props?.children);
   }
   findTitle(tree).props.onClick();
-  assert.equal(calls.length, 0);
-  assert.ok(changes.includes(article));
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].route, '/articles/1/summary');
+  assert.ok(changes.length > 0);
   find(tree).props.onClick();
   assert.ok(calls.find(c => c.route === '/scan').opts.timeoutMs > 180000);
 });

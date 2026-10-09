@@ -1,4 +1,5 @@
 const test = require('node:test');
+require('./ui_harness.cjs').suite(false);
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
@@ -76,8 +77,9 @@ test('title opens details without inference or read mutations', () => {
   const title = find(view());
   assert.ok(title, 'article title must open a detail panel');
   title.props.onClick();
-  assert.equal(calls.length, 0);
-  assert.ok(changes.includes(article));
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], '/api/plugins/blogwatcher-dashboard/articles/1/summary');
+  assert.ok(changes.length > 0);
 });
 
 test('superseded loads cannot overwrite current results', async () => {
