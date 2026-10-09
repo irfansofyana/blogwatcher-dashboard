@@ -87,6 +87,28 @@ class SummaryTests(unittest.TestCase):
         self.assertIsNotNone(self.service.saved_summary(self.article))
         self.assertIsNone(self.service.saved_summary({'url': 'https://example.org/other'}))
 
+    def test_multibyte_summary_survives_saved_lookup(self):
+        self.service.generate = lambda *_: {'text': '界' * 16000, 'model': 'test', 'provider': 'test'}
+        result = self.service.summarize(self.article, 'a')
+        self.assertEqual(self.service.saved_summary(self.article)['text'], result['text'])
+
+    def test_regeneration_does_not_join_normal_cached_request(self):
+        import threading
+        self.service.summarize(self.article, 'a')
+        entered, release = threading.Event(), threading.Event()
+        fetch = self.service.fetch
+        def paused(url):
+            entered.set(); release.wait(2)
+            return fetch(url)
+        self.service.fetch = paused
+        results = []
+        normal = threading.Thread(target=lambda: results.append(self.service.summarize(self.article, 'a')))
+        normal.start(); self.assertTrue(entered.wait(1))
+        regenerated = self.service.summarize(self.article, 'a', regenerate=True)
+        release.set(); normal.join(3)
+        self.assertFalse(regenerated['cached'])
+        self.assertEqual(len(self.calls), 2)
+
     def test_configuration_change_invalidates_cache(self):
         self.service.summarize(self.article, 'a')
         self.service.summarize(self.article, 'b')

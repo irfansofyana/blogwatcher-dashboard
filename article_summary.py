@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import threading
+import uuid
 import time
 from concurrent.futures import Future, TimeoutError
 from pathlib import Path
@@ -51,7 +52,7 @@ class SummaryService:
     def summarize(self, article, configuration, regenerate=False):
         if not article.get('url'):
             raise SummaryError('This article has no permitted website URL', 'unsafe_url')
-        identity = (article['url'], configuration)
+        identity = (article['url'], configuration, bool(regenerate))
         with self.guard:
             owner = identity not in self.inflight
             record = self.inflight.setdefault(identity, {'future': Future(), 'users': 0})
@@ -107,7 +108,8 @@ class SummaryService:
 
     def _read(self, path, allow_stale=False):
         try:
-            if path.stat().st_size > 24000:
+            # 16k Unicode characters can require 64k UTF-8 bytes, plus metadata.
+            if path.stat().st_size > 128000:
                 return None
             data = json.loads(path.read_text())
             if (allow_stale or time.time() - data['generated_at'] < TTL) and isinstance(data['text'], str) and data['text'].strip():
@@ -119,7 +121,7 @@ class SummaryService:
         return None
 
     def _write(self, path, answer):
-        temporary = path.with_suffix('.pending')
+        temporary = path.with_suffix('.' + uuid.uuid4().hex + '.pending')
         try:
             temporary.write_text(json.dumps(answer, ensure_ascii=False))
             temporary.chmod(0o600)
