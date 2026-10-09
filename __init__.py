@@ -22,6 +22,8 @@ def _call(method, params, keys):
 
 
 def register(ctx):
+    from .summary_bridge import bind_context
+    bind_context(ctx)
     commands = [
         ("blogwatcher_list_sources", "List subscribed sources in the original Blogwatcher CLI.", "blogs", {}),
         ("blogwatcher_list_articles", "List original Blogwatcher articles. Unread by default; returns up to 50 article IDs and URLs for citation (limit 100).", "articles", {"all_articles": {"type": "boolean"}, "blog": {"type": "string"}, "offset": {"type": "integer", "minimum": 0}, "limit": {"type": "integer", "minimum": 1, "maximum": 100}}),
